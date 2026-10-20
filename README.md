@@ -1,56 +1,75 @@
-# Odium Weather
+<p align="center">
+  <img src="docs/icon.png" alt="Odium Weather icon" width="96" height="96">
+</p>
 
-A dark, no-account weather app for Android. It is the Odium Weather desktop (Electron) app ported to a native Android shell: the same React UI runs inside a WebView, and everything it needs is bundled in the APK. No server, no API keys, no sign-up.
+<h1 align="center">Odium Weather for Android</h1>
 
-- **Package:** `com.odium.weather`
-- **Android:** 5.0+ (API 21), target SDK 34
-- **Needs:** internet (forecast and radar are fetched live)
-- **Data:** [Open-Meteo](https://open-meteo.com) for forecasts and geocoding, [RainViewer](https://www.rainviewer.com/api.html) for radar, CARTO dark tiles for the map
+<p align="center">
+  A dark, minimal weather app with hourly and 7-day forecasts and a live animated radar.<br>
+  Android port of the Odium Weather Electron app.
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/forecast.png" alt="Current conditions, hourly and 7-day forecast" width="260">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/search.png" alt="Location search with saved locations" width="260">
+</p>
+
+<p align="center"><sub>Screenshots use sample data.</sub></p>
 
 ## Features
 
 - **Current conditions**: temperature, feels-like, humidity, wind speed and direction, pressure, UV index
-- **Hourly forecast**: horizontally scrolling strip with icon, temperature, and rain chance
-- **7-day forecast**: daily high/low and precipitation probability
-- **Sun times**: sunrise and sunset
-- **Animated radar**: play/pause and step through past and nowcast frames on a dark map
-- **Location search**: type a city, pick a result
-- **Saved locations**: star a place to keep it in your list, remove it any time
-- **Units**: imperial (°F, mph, inches) or metric (°C, km/h, mm)
-- **Auto refresh**: forecast reloads every 10 minutes while the app is open
-- **Phone-friendly UI**: touch-sized controls, no desktop window buttons, Back closes search first
+- **Hourly forecast**: the next 24 hours, with precipitation chance
+- **7-day forecast**: daily high/low with a temperature range bar
+- **Sunrise and sunset** times for today
+- **Animated radar**: past and nowcast precipitation frames over a dark map, with play/pause and frame stepping
+- **Location search**: search by city or zip, with results showing region and country
+- **Saved locations**: tap the star next to the city name to save it, and pick from your saved list in the search panel
+- **Auto-refresh**: the forecast reloads every 10 minutes
+- **Remembers your last location** between launches
 
-Your location, saved places and units are stored on the device (WebView `localStorage`). Nothing is sent anywhere except the lookups above.
+## How it works
 
-## Install
+The UI is the same React code as the desktop app, running inside a plain Android `WebView`. There is no backend: everything is bundled in the APK and the app talks directly to public weather APIs.
 
-Build the APK (below), copy `app-debug.apk` to your phone, open it, and allow installs from your file manager or browser if Android asks.
+| Piece | What it does |
+| --- | --- |
+| `MainActivity.java` | Hosts the WebView and serves the bundled files from `assets/www` on a fake `https://appassets.androidplatform.net` origin, so `fetch()`, `localStorage` and CORS behave like a normal website. Opens external links in the system browser and handles the Back button. |
+| `web-src/android-bridge.js` | Replaces Electron's preload/main-process calls. Fetches data from the APIs below and stores settings in `localStorage`. |
+| `web-src/app.jsx` | The React UI (React 19, Leaflet / react-leaflet for the radar map, lucide-react for icons). |
+
+**Data sources**
+
+- [Open-Meteo](https://open-meteo.com/) for geocoding and forecasts
+- [RainViewer](https://www.rainviewer.com/) for radar frames
+- [CARTO](https://carto.com/) dark basemap tiles, with map data from [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
+
+**Requirements:** Android 5.0 (API 21) or newer, with an internet connection. Compiled against SDK 34.
 
 ## Build the APK
 
-You need Android Studio with JDK 17.
-
-1. Open this folder in Android Studio and let Gradle sync.
+1. Open this folder in Android Studio and let Gradle sync. The project uses Android Gradle Plugin 8.5.2 and Gradle 9.6.0 (via the wrapper); Android Studio's bundled JDK should be all you need.
 2. **Build > Build Bundle(s) / APK(s) > Build APK(s)**
-3. Grab `app/build/outputs/apk/debug/app-debug.apk`
+3. The APK lands at `app/build/outputs/apk/debug/app-debug.apk`
 
-Or from a terminal with the Android SDK installed:
+Or from the command line:
 
-```
+```bash
 ./gradlew assembleDebug
 ```
 
-## Change the UI
+## Changing the UI
 
-The UI source lives in `web-src/`. The built bundle is committed under `app/src/main/assets/www/`, so you only need Node if you edit the UI.
+Edit `web-src/app.jsx`, then rebuild the web bundle:
 
-```
+```bash
 cd web-src
 npm install
 npm run build
 ```
 
-`npm run build` bundles `app.jsx` with esbuild into `app/src/main/assets/www/bundle.js` and copies `index.html` and `android-bridge.js` next to it. Rebuild the APK afterwards.
+This bundles the app with esbuild into `app/src/main/assets/www/bundle.js` and copies `index.html` and `android-bridge.js` alongside it. Rebuild the APK afterwards to pick up the changes.
 
 ## Project layout
 
@@ -58,44 +77,27 @@ npm run build
 OdiumWeather/
 ├── app/
 │   └── src/main/
-│       ├── java/com/odium/weather/MainActivity.java   WebView host
-│       ├── assets/www/                                built web UI (generated)
+│       ├── java/com/odium/weather/MainActivity.java   # WebView host
+│       ├── assets/www/                                # built web bundle (generated)
+│       ├── res/mipmap-*/                              # launcher icons
 │       └── AndroidManifest.xml
-└── web-src/
-    ├── app.jsx             React UI (cards, radar, search, settings)
-    ├── android-bridge.js   replaces Electron's preload + IPC
-    ├── index.html
-    └── package.json
+├── web-src/
+│   ├── app.jsx                                        # React UI
+│   ├── android-bridge.js                              # API + settings layer
+│   ├── index.html
+│   └── package.json
+└── docs/                                              # README images
 ```
 
-## How it works
+## What changed vs the desktop app
 
-- `MainActivity` loads the bundled UI from a fake HTTPS origin (`appassets.androidplatform.net`) so `fetch()`, `localStorage`, and CORS behave like a normal website. Requests to that host are answered from `assets/www`; everything else goes to the network.
-- Links that leave the app open in your browser instead of inside the WebView.
-- `android-bridge.js` provides the three APIs the React app expects (`odiumWeather`, `odiumSettings`, `odiumWindow`). On desktop these were Electron IPC calls; here they are plain `fetch` calls to Open-Meteo and RainViewer plus `localStorage`.
-- Hardware Back calls `window.__odiumBack()`. If the search panel is open it closes; otherwise the app exits.
+- Min/Max/Close buttons are hidden (no window chrome on Android)
+- The search panel fits phone width, and the title bar is touch-sized
+- Hardware Back closes the search panel first, then exits the app
+- Settings are saved in WebView `localStorage` instead of `~/.config`
+- Hourly time labels no longer wrap
 
-## Differences from the desktop app
+## Notes
 
-- Minimize / maximize / close buttons are hidden (no window chrome on Android)
-- Search panel fits phone width and the title bar is touch-sized
-- Settings live in WebView `localStorage` instead of `~/.config`
-- Hourly labels no longer wrap
-
-## Use with Odium Launcher
-
-[Odium Launcher](../odium-launcher) detects this app by its package name (`com.odium.weather`). Once installed, the launcher's weather widget and Odium page tile open it with a tap.
-
-## Troubleshooting
-
-| Problem | Fix |
-| --- | --- |
-| "Couldn't load forecast" | Check your connection. The app has no offline cache. |
-| Radar stays on "Loading radar..." | RainViewer may be unreachable on your network; try again later. |
-| Blank map tiles | The CARTO tile server is blocked or offline. |
-| Wrong city after search | Pick a result that shows the region and country, since many cities share a name. |
-| UI edits not showing | Run `npm run build` in `web-src/` before building the APK. |
-
-## Credits
-
-Weather data by Open-Meteo (CC BY 4.0), radar by RainViewer, map tiles by CARTO and OpenStreetMap contributors.
+- Units default to imperial (°F, mph, inches). The setting is stored with your preferences, but there is no in-app toggle for it yet.
+- The app only requests the `INTERNET` permission. It does not use your device location; you pick a place by searching.
