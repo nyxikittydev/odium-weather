@@ -1,0 +1,18 @@
+{
+  "name": "odium-weather-web",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "esbuild app.jsx --bundle --minify --outfile=../app/src/main/assets/www/bundle.js --jsx-factory=React.createElement --jsx-fragment=React.Fragment --loader:.css=css --loader:.png=dataurl --define:process.env.NODE_ENV=\\\"production\\\" && cp index.html android-bridge.js ../app/src/main/assets/www/"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}
